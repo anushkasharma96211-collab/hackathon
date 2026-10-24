@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrandGuard AI | Brand Content Checker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-mark">BG</div>
+    <div>
+      <p class="eyebrow">QUANTUM REBELS PRESENTS</p>
+      <h1>BrandGuard <span>AI</span></h1>
+    </div>
+    <span class="prototype-tag">MVP PROTOTYPE</span>
+  </header>
+
+  <main class="page">
+    <section class="intro">
+      <p class="eyebrow">BRAND CONTENT REVIEW</p>
+      <h2>Make every message <span>brand-ready.</span></h2>
+      <p>Check a draft against your brand rules, understand possible issues, and decide which suggestions to use.</p>
+    </section>
+
+    <div class="notice"><strong>Demo note:</strong> This prototype uses transparent, rule-based checks on sample rules. It does not guarantee that content is correct.</div>
+
+    <section class="workspace">
+      <div class="panel">
+        <div class="panel-heading">
+          <div><span class="step">01</span><h3>Brand rules</h3></div>
+          <button class="text-button" id="loadExample">Load example</button>
+        </div>
+        <label for="brandName">Brand name</label>
+        <input id="brandName" type="text" value="NovaTech" placeholder="e.g. NovaTech">
+        <label for="rules">Rules (one per line)</label>
+        <textarea id="rules" rows="7" spellcheck="false">Avoid: 100% guaranteed results
+Use: buyer -> customer
+Fact: warranty -> 1 year</textarea>
+        <p class="helper">Supported formats: <code>Avoid: phrase</code>, <code>Use: old term -&gt; preferred term</code>, and <code>Fact: topic -&gt; approved value</code>.</p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-heading">
+          <div><span class="step">02</span><h3>Content draft</h3></div>
+          <button class="text-button" id="clearDraft">Clear</button>
+        </div>
+        <label for="draft">Paste the text you want to review</label>
+        <textarea id="draft" rows="9" placeholder="Paste a social post, ad, or announcement here...">NovaTech guarantees 100% guaranteed results for every buyer. Our warranty is five years.</textarea>
+        <div class="actions">
+          <button class="primary-button" id="checkButton">Check content <span aria-hidden="true">→</span></button>
+          <span class="helper" id="inputHint">Your draft stays in this browser page.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="results-section" id="resultsSection" aria-live="polite">
+      <div class="results-heading">
+        <div><p class="eyebrow">REVIEW SUMMARY</p><h2>Findings</h2></div>
+        <div class="summary-pill" id="summaryPill">Not checked yet</div>
+      </div>
+      <div id="summaryCards" class="summary-cards"></div>
+      <div id="results" class="results-list">
+        <div class="empty-state"><div class="empty-icon">✓</div><h3>Ready when you are</h3><p>Run a check to see possible brand-rule issues and suggested edits here.</p></div>
+      </div>
+    </section>
+
+    <section class="how-it-works">
+      <h2>How BrandGuard works</h2>
+      <div class="how-grid">
+        <div><span>1</span><h3>Set rules</h3><p>Enter approved wording, terms, and facts.</p></div>
+        <div><span>2</span><h3>Check draft</h3><p>Compare the draft with the rules you supplied.</p></div>
+        <div><span>3</span><h3>Review changes</h3><p>Accept, edit, or reject each suggestion yourself.</p></div>
+      </div>
+    </section>
+
+    <footer><span>BrandGuard AI · Team Quantum Rebels</span><span>Human review stays in control.</span></footer>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
