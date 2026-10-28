@@ -1,218 +1,314 @@
-const $ = (id) => document.getElementById(id);
-let currentIssues = [];
-let originalDraft = "";
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const scenarios = {
+    social: "We are excited to announce our new service! It is the cheapest option on the market and we guarantee instant results for every customer. Our company was established in 2025 and we are changing the future.",
+    press: "FOR IMMEDIATE RELEASE: BrandGuard launches a new content review tool. Established in 2025, the team guarantees that every draft is perfect. The product helps customers review messaging before publication.",
+    product: "Meet the cheapest tool for every team. We guarantee 100% accurate results and instant compliance. Established in 2025, our product helps users publish better content with confidence.",
+    blank: ""
+  };
+  let rules = [
+    {id:1,type:"avoid",term:"cheapest",value:"",label:"Avoid phrase"},
+    {id:2,type:"replace",term:"guarantee",value:"aim to help",label:"Preferred wording"},
+    {id:3,type:"replace",term:"customers",value:"people and teams",label:"Preferred wording"},
+    {id:4,type:"fact",term:"established in",value:"2024",label:"Approved fact"},
+    {id:5,type:"avoid",term:"100% accurate",value:"",label:"Avoid phrase"}
+  ];
+  let findings = [];
+  let hasRun = false;
+  let nextRuleId = 6;
+  let nextFindingId = 1;
+  let toastTimer;
 
-function parseRules(text) {
-  return text.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map((line, index) => {
-    if (/^avoid\s*:/i.test(line)) {
-      return { type: "avoid", raw: line, value: line.replace(/^avoid\s*:/i, "").trim(), index };
-    }
-    if (/^use\s*:/i.test(line)) {
-      const value = line.replace(/^use\s*:/i, "").trim();
-      const parts = value.split(/\s*->\s*/);
-      if (parts.length === 2 && parts[0] && parts[1]) return { type: "use", raw: line, old: parts[0], preferred: parts[1], index };
-    }
-    if (/^fact\s*:/i.test(line)) {
-      const value = line.replace(/^fact\s*:/i, "").trim();
-      const parts = value.split(/\s*->\s*/);
-      if (parts.length === 2 && parts[0] && parts[1]) return { type: "fact", raw: line, topic: parts[0], approved: parts[1], index };
-    }
-    return { type: "invalid", raw: line, index };
-  });
-}
-
-function replaceAllInsensitive(text, search, replacement) {
-  if (!search) return text;
-  return text.replace(new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), replacement);
-}
-
-function checkContent() {
-  const draft = $("draft").value.trim();
-  const brand = $("brandName").value.trim() || "your brand";
-  const rules = parseRules($("rules").value);
-  if (!draft) {
-    $("inputHint").textContent = "Please enter a draft before checking.";
-    $("draft").focus();
-    return;
+  const escapeHtml = (value) => String(value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+  const countWords = (text) => (text.trim().match(/\S+/g) || []).length;
+  function wordRegex(term) {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const left = /^[\w]/.test(term) ? "\\b" : "";
+    const right = /[\w]$/.test(term) ? "\\b" : "";
+    return new RegExp(left + escaped + right, "gi");
   }
-  const invalidRules = rules.filter(r => r.type === "invalid");
-  if (!rules.some(r => r.type !== "invalid")) {
-    $("inputHint").textContent = "Add at least one valid rule using the formats shown above.";
-    $("rules").focus();
-    return;
+  function showToast(message) {
+    const toast = $("toast");
+    toast.textContent = message;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
   }
-  $("inputHint").textContent = invalidRules.length
-    ? `${invalidRules.length} rule line(s) could not be understood and were skipped.`
-    : "Checks completed using the rules you supplied.";
-  originalDraft = draft;
-  currentIssues = [];
-  const lowerDraft = draft.toLowerCase();
-
-  rules.forEach(rule => {
-    if (rule.type === "avoid" && rule.value && lowerDraft.includes(rule.value.toLowerCase())) {
-      currentIssues.push({
-        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
-        type: "Prohibited wording",
-        phrase: rule.value,
-        reason: `This phrase matches the Avoid rule: “${rule.value}”. Review whether the claim is approved for ${brand}.`,
-        suggestion: "Replace this with a specific, verified benefit approved by the brand.",
-        status: "pending",
-        rule: rule.raw
-      });
+  function updateWordCount() {
+    $("wordCount").textContent = `${countWords($("draftText").value)} words`;
+  }
+  function updateRuleCounts() {
+    $("heroRuleCount").textContent = rules.length;
+    $("ruleCountSide").textContent = rules.length;
+  }
+  function renderRules() {
+    updateRuleCounts();
+    const list = $("rulesList");
+    if (!rules.length) {
+      list.innerHTML = '<div class="empty-state"><strong>No active rules</strong><p>Add a rule below to begin checking content.</p></div>';
+      return;
     }
-    if (rule.type === "use" && rule.old && lowerDraft.includes(rule.old.toLowerCase())) {
-      currentIssues.push({
-        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
-        type: "Preferred terminology",
-        phrase: rule.old,
-        reason: `The brand rule prefers “${rule.preferred}” instead of “${rule.old}”.`,
-        suggestion: rule.preferred,
-        status: "pending",
-        rule: rule.raw
-      });
+    list.innerHTML = rules.map(rule => {
+      const title = rule.type === "fact" ? `Fact: ${rule.term}` : rule.type === "replace" ? `Prefer: ${rule.term}` : `Avoid: ${rule.term}`;
+      const detail = rule.type === "replace" ? `Suggested wording: ${rule.value}` : rule.type === "fact" ? `Approved value: ${rule.value}` : "Flag this wording for human review";
+      return `<div class="rule-row"><span class="rule-stripe ${rule.type}"></span><div><div class="rule-title">${escapeHtml(title)}</div><div class="rule-detail">${escapeHtml(detail)}</div></div><div style="display:flex;align-items:center;gap:4px"><span class="rule-badge ${rule.type}">${rule.type}</span><button class="rule-delete" data-delete-rule="${rule.id}" title="Delete rule" aria-label="Delete rule">×</button></div></div>`;
+    }).join("");
+    list.querySelectorAll("[data-delete-rule]").forEach(button => button.addEventListener("click", () => {
+      const id = Number(button.dataset.deleteRule);
+      rules = rules.filter(rule => rule.id !== id);
+      renderRules();
+      if (hasRun) analyzeDraft(false);
+      showToast("Brand rule removed.");
+    }));
+  }
+  function analyzeDraft(announce = true) {
+    const draft = $("draftText").value;
+    if (!draft.trim()) {
+      showToast("Add a draft before running analysis.");
+      $("draftText").focus();
+      return;
     }
-    if (rule.type === "fact" && rule.topic && lowerDraft.includes(rule.topic.toLowerCase())) {
-      const topicRegex = new RegExp(rule.topic.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-      const topicMatch = draft.match(topicRegex);
-      const topicIndex = topicMatch ? topicMatch.index : -1;
-      const context = topicIndex >= 0 ? draft.slice(Math.max(0, topicIndex - 35), Math.min(draft.length, topicIndex + rule.topic.length + 75)) : "";
-      if (context && !context.toLowerCase().includes(rule.approved.toLowerCase())) {
-        currentIssues.push({
-          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
-          type: "Approved fact check",
-          phrase: context.trim(),
-          reason: `The approved fact for “${rule.topic}” is “${rule.approved}”. This nearby text does not contain the approved value, so verify it before publishing.`,
-          suggestion: `Check the statement about ${rule.topic} and use the approved value: ${rule.approved}.`,
-          status: "pending",
-          rule: rule.raw
-        });
+    const found = [];
+    rules.forEach(rule => {
+      if (rule.type === "avoid" || rule.type === "replace") {
+        const regex = wordRegex(rule.term);
+        let match, count = 0;
+        while ((match = regex.exec(draft)) !== null) {
+          count++;
+          if (match[0].length === 0) regex.lastIndex++;
+        }
+        if (count) {
+          found.push({
+            id: nextFindingId++, ruleId: rule.id, type: rule.type, term: rule.term, value: rule.value,
+            count, status: "open", title: rule.type === "avoid" ? `Avoid phrase detected: “${rule.term}”` : `Preferred wording needed: “${rule.term}”`,
+            detail: rule.type === "avoid" ? "This wording is marked for review by your brand guidelines." : `Consider replacing it with “${rule.value}”.`,
+            quote: draft
+          });
+        }
+      } else if (rule.type === "fact") {
+        const topicRegex = wordRegex(rule.term);
+        const topicMatches = [...draft.matchAll(topicRegex)];
+        if (topicMatches.length) {
+          const valueRegex = wordRegex(rule.value);
+          if (!valueRegex.test(draft)) {
+            found.push({
+              id: nextFindingId++, ruleId: rule.id, type: "fact", term: rule.term, value: rule.value,
+              count: topicMatches.length, status: "open", title: `Verify approved fact: “${rule.term}”`,
+              detail: `The draft mentions this topic but the approved value “${rule.value}” was not found. Confirm the correct fact before publishing.`,
+              quote: draft
+            });
+          }
+        }
       }
-    }
-  });
-  renderResults();
-}
-
-function renderResults() {
-  const pending = currentIssues.filter(i => i.status === "pending").length;
-  const accepted = currentIssues.filter(i => i.status === "accepted").length;
-  const rejected = currentIssues.filter(i => i.status === "rejected").length;
-  $("summaryPill").textContent = currentIssues.length ? `${currentIssues.length} finding(s)` : "No known issues found";
-  $("summaryCards").innerHTML = `
-    <div class="summary-card"><span>Findings</span><strong>${currentIssues.length}</strong></div>
-    <div class="summary-card"><span>Pending review</span><strong>${pending}</strong></div>
-    <div class="summary-card"><span>Reviewed</span><strong>${accepted + rejected}</strong></div>`;
-  const results = $("results");
-  if (!currentIssues.length) {
-    results.innerHTML = `<div class="empty-state"><div class="empty-icon">✓</div><h3>No configured rules were triggered</h3><p>This does not prove the draft is correct. Review it against your full brand guidelines before publishing.</p></div>`;
-    return;
+    });
+    findings = found;
+    hasRun = true;
+    renderFindings();
+    updateMetrics();
+    if (announce) showToast(`Review complete: ${findings.length} finding${findings.length === 1 ? "" : "s"} to inspect.`);
   }
-  results.innerHTML = "";
-  currentIssues.forEach(issue => {
-    const card = document.createElement("article");
-    card.className = "issue";
-    const top = document.createElement("div");
-    top.className = "issue-top";
-    const icon = document.createElement("div");
-    icon.className = "issue-icon";
-    icon.textContent = issue.status === "accepted" ? "✓" : issue.status === "rejected" ? "×" : "!";
-    const content = document.createElement("div");
-    content.style.flex = "1";
-    const title = document.createElement("h3");
-    title.textContent = issue.type;
-    const ruleLabel = document.createElement("div");
-    ruleLabel.className = "rule-label";
-    ruleLabel.textContent = issue.status === "pending" ? "Needs human review" : issue.status === "accepted" ? "Suggestion accepted" : "Suggestion rejected";
-    const phrase = document.createElement("p");
-    phrase.innerHTML = "Flagged text: ";
-    const span = document.createElement("span");
-    span.className = "phrase";
-    span.textContent = issue.phrase;
-    phrase.appendChild(span);
-    const reason = document.createElement("p");
-    reason.textContent = issue.reason;
-    const rule = document.createElement("p");
-    rule.textContent = `Rule: ${issue.rule}`;
-    content.append(title, ruleLabel, phrase, reason, rule);
-    top.append(icon, content);
-    card.append(top);
-
-    if (issue.status === "pending") {
-      const suggestionLabel = document.createElement("label");
-      suggestionLabel.className = "suggestion-label";
-      suggestionLabel.textContent = "Suggested correction";
-      const suggestion = document.createElement("div");
-      suggestion.className = "suggestion";
-      suggestion.textContent = issue.suggestion;
-      const edit = document.createElement("textarea");
-      edit.className = "edit-area";
-      edit.value = issue.suggestion;
-      edit.hidden = true;
-      const actions = document.createElement("div");
-      actions.className = "issue-actions";
-      const accept = makeButton("Accept", "small-button accept", () => applySuggestion(issue.id, edit.hidden ? issue.suggestion : edit.value));
-      const editBtn = makeButton("Edit suggestion", "small-button", () => {
-        edit.hidden = !edit.hidden;
-        editBtn.textContent = edit.hidden ? "Edit suggestion" : "Hide editor";
-        if (!edit.hidden) edit.focus();
-      });
-      const reject = makeButton("Reject", "small-button reject", () => setStatus(issue.id, "rejected"));
-      actions.append(accept, editBtn, reject);
-      card.append(suggestionLabel, suggestion, edit, actions);
+  function highlightTerm(text, term) {
+    if (!term) return escapeHtml(text);
+    const regex = wordRegex(term);
+    let result = "", last = 0, match;
+    while ((match = regex.exec(text)) !== null) {
+      result += escapeHtml(text.slice(last, match.index)) + `<mark>${escapeHtml(match[0])}</mark>`;
+      last = match.index + match[0].length;
+      if (!match[0].length) regex.lastIndex++;
+    }
+    return result + escapeHtml(text.slice(last));
+  }
+  function renderFindings() {
+    const list = $("findingsList");
+    const filter = $("filterFindings").value;
+    const visible = findings.filter(item => filter === "all" || item.status === filter);
+    $("resultCount").textContent = findings.length;
+    if (!hasRun) {
+      list.innerHTML = '<div class="empty-state"><div class="empty-icon">⌕</div><strong>Ready when you are</strong><p>Analyze a draft to see wording and fact-check findings here.</p></div>';
+      $("reviewSummary").textContent = "No review has been run yet.";
+      return;
+    }
+    if (!visible.length) {
+      list.innerHTML = `<div class="empty-state"><div class="empty-icon">✓</div><strong>${findings.length ? "No findings in this filter" : "No rule-based issues detected"}</strong><p>${findings.length ? "Try changing the filter to see other findings." : "This does not guarantee the content is error-free. A human review is still recommended."}</p></div>`;
     } else {
-      const status = document.createElement("div");
-      status.className = "status-note";
-      status.textContent = issue.status === "accepted" ? "Accepted suggestion was applied to the draft." : "Suggestion dismissed; the draft was not changed.";
-      card.append(status);
+      list.innerHTML = visible.map(item => {
+        const quote = item.type === "fact" ? highlightTerm(item.quote, item.term) : highlightTerm(item.quote, item.term);
+        const statusText = item.status === "open" ? "Needs review" : item.status;
+        const suggestion = item.type === "replace" ? `<div class="finding-recommendation"><strong>Suggested:</strong> ${escapeHtml(item.value)} <span style="color:#98a1b0">· ${item.count} occurrence${item.count===1?"":"s"}</span></div>` :
+          item.type === "fact" ? `<div class="finding-recommendation"><strong>Approved value:</strong> ${escapeHtml(item.value)} · Please verify the source of truth.</div>` :
+          `<div class="finding-recommendation"><strong>Recommendation:</strong> Rephrase or remove this term based on the intended message.</div>`;
+        const actionButtons = item.status === "open" ? `<div class="finding-actions">${item.type === "replace" ? `<button class="mini-button accept" data-accept="${item.id}">Apply suggestion</button>` : item.type === "fact" ? `<button class="mini-button accept" data-accept-fact="${item.id}">Use approved value</button>` : ""}<button class="mini-button" data-dismiss="${item.id}">Dismiss finding</button></div>` : "";
+        return `<article class="finding-card"><div class="finding-symbol ${item.type}">${item.type==="avoid"?"!":item.type==="fact"?"✓":"↗"}</div><div class="finding-main"><div class="finding-top"><div><div class="finding-title">${escapeHtml(item.title)}</div><div class="finding-meta">Rule #${item.ruleId} · ${item.count} matching occurrence${item.count===1?"":"s"}</div></div><span class="finding-status ${item.status}">${escapeHtml(statusText)}</span></div><div class="finding-quote">${quote.length > 800 ? quote.slice(0,800) + "…" : quote}</div><div class="finding-recommendation">${escapeHtml(item.detail)}</div>${suggestion}${actionButtons}</div></article>`;
+      }).join("");
+      list.querySelectorAll("[data-accept]").forEach(button => button.addEventListener("click", () => applySuggestion(Number(button.dataset.accept))));
+      list.querySelectorAll("[data-accept-fact]").forEach(button => button.addEventListener("click", () => applyFact(Number(button.dataset.acceptFact))));
+      list.querySelectorAll("[data-dismiss]").forEach(button => button.addEventListener("click", () => {
+        const item = findings.find(f => f.id === Number(button.dataset.dismiss));
+        if (item) item.status = "dismissed";
+        renderFindings(); updateMetrics(); showToast("Finding dismissed for this review.");
+      }));
     }
-    results.append(card);
+    const openCount = findings.filter(item => item.status === "open").length;
+    const acceptedCount = findings.filter(item => item.status === "accepted").length;
+    $("reviewSummary").textContent = `${findings.length} finding(s) · ${acceptedCount} accepted · ${openCount} still need review`;
+  }
+  function applySuggestion(id) {
+    const item = findings.find(f => f.id === id);
+    if (!item) return;
+    const regex = wordRegex(item.term);
+    $("draftText").value = $("draftText").value.replace(regex, item.value);
+    item.status = "accepted";
+    updateWordCount();
+    // Re-analyse to keep findings consistent with the changed draft, while preserving the acceptance record.
+    const accepted = findings.filter(f => f.status === "accepted");
+    const previous = findings;
+    analyzeDraft(false);
+    findings.forEach(f => {
+      const old = accepted.find(a => a.ruleId === f.ruleId && a.term === f.term);
+      if (old) f.status = "accepted";
+    });
+    renderFindings(); updateMetrics();
+    showToast("Suggestion applied. Run another review before publishing.");
+  }
+  function applyFact(id) {
+    const item = findings.find(f => f.id === id);
+    if (!item) return;
+    const draft = $("draftText").value;
+    const regex = wordRegex(item.term);
+    if (regex.test(draft)) {
+      regex.lastIndex = 0;
+      $("draftText").value = $("draftText").value.replace(regex, match => `${match} ${item.value}`);
+    } else {
+      $("draftText").value += `\n${item.term} ${item.value}`;
+    }
+    updateWordCount();
+    analyzeDraft(false);
+    showToast("Approved value inserted. Verify it against your source of truth.");
+  }
+  function updateMetrics() {
+    const total = findings.length;
+    const open = findings.filter(f => f.status === "open").length;
+    const accepted = findings.filter(f => f.status === "accepted").length;
+    const dismissed = findings.filter(f => f.status === "dismissed").length;
+    const score = Math.max(0, 100 - open * 16 - dismissed * 2);
+    $("scoreValue").textContent = hasRun ? score : "—";
+    $("scoreMeter").style.width = hasRun ? `${score}%` : "0%";
+    $("scoreCaption").textContent = !hasRun ? "Run a review to calculate" : open === 0 ? "No open rule findings" : `${open} item(s) need human review`;
+    $("findingValue").textContent = open;
+    $("findingCaption").textContent = `${accepted} accepted · ${dismissed} dismissed`;
+    const factRules = rules.filter(r => r.type === "fact");
+    const factFindings = findings.filter(f => f.type === "fact");
+    $("factValue").textContent = Math.max(0, factRules.length - factFindings.length);
+    $("factTotal").textContent = ` / ${factRules.length} checked`;
+    $("statusValue").textContent = !hasRun ? "Not run" : open ? "Review needed" : "Ready for human check";
+    $("statusCaption").textContent = !hasRun ? "Analysis has not started" : open ? "Resolve or dismiss open findings" : "Human approval still required";
+  }
+  function buildReport() {
+    const draft = $("draftText").value;
+    const open = findings.filter(f => f.status === "open").length;
+    const accepted = findings.filter(f => f.status === "accepted").length;
+    const dismissed = findings.filter(f => f.status === "dismissed").length;
+    const score = hasRun ? Math.max(0, 100 - open * 16 - dismissed * 2) : null;
+    const lines = [
+      "BRANDGUARD AI — CONTENT REVIEW REPORT",
+      "Team: Quantum Rebels | FutureStack Round 3",
+      `Generated: ${new Date().toLocaleString()}`,
+      `Words in draft: ${countWords(draft)}`,
+      `Active rules: ${rules.length}`,
+      `Review status: ${!hasRun ? "Not run" : open ? "Review needed" : "Ready for human check"}`,
+      `Rule-based score: ${score === null ? "Not calculated" : score + "/100 (prototype heuristic, not a validated quality metric)"}`,
+      `Findings: ${findings.length} total; ${open} open; ${accepted} accepted; ${dismissed} dismissed`,
+      "",
+      "IMPORTANT LIMITATION",
+      "This prototype uses transparent client-side phrase matching and simple approved-fact checks. It does not use a connected AI model, external fact database, or backend. Results can miss context and do not prove a draft is accurate or safe. A human must verify facts and approve publication.",
+      "",
+      "FINDINGS",
+      ...(findings.length ? findings.map((f, i) => `${i+1}. [${f.status.toUpperCase()}] ${f.title}\n   Rule: ${f.term}${f.value ? " -> " + f.value : ""}\n   Note: ${f.detail}`) : ["No rule-based findings detected."]),
+      "",
+      "DRAFT",
+      draft
+    ];
+    return lines.join("\n");
+  }
+  function openReport() {
+    const draft = $("draftText").value;
+    const open = findings.filter(f => f.status === "open").length;
+    const accepted = findings.filter(f => f.status === "accepted").length;
+    const score = hasRun ? Math.max(0, 100 - open * 16 - findings.filter(f => f.status === "dismissed").length * 2) : "—";
+    $("reportContent").innerHTML = `
+      <p class="report-paragraph">A compact summary of the current draft review. The score is a prototype heuristic based on open findings, not a validated measure of writing quality.</p>
+      <div class="report-summary-grid"><div class="report-summary-item"><span>Rule-based score</span><strong>${score}${score === "—" ? "" : "/100"}</strong></div><div class="report-summary-item"><span>Findings</span><strong>${findings.length}</strong></div><div class="report-summary-item"><span>Words</span><strong>${countWords(draft)}</strong></div></div>
+      <div class="report-detail"><strong>Status:</strong> ${!hasRun ? "Analysis not run" : open ? `${open} finding(s) need review` : "No open findings remain"}.</div>
+      <div class="report-detail"><strong>Human decisions:</strong> ${accepted} accepted · ${findings.filter(f=>f.status==="dismissed").length} dismissed.</div>
+      <div class="report-detail"><strong>Scope:</strong> ${rules.length} editable rules checked locally in the browser.</div>
+      <div class="report-detail"><strong>Limitations:</strong> This prototype uses phrase matching and simple fact checks; it does not connect to an AI model or verify facts against the internet. Human verification is required.</div>`;
+    const dialog = $("reportDialog");
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else showToast("Your browser does not support the report dialog.");
+  }
+  function resetDemo() {
+    rules = [
+      {id:1,type:"avoid",term:"cheapest",value:"",label:"Avoid phrase"},
+      {id:2,type:"replace",term:"guarantee",value:"aim to help",label:"Preferred wording"},
+      {id:3,type:"replace",term:"customers",value:"people and teams",label:"Preferred wording"},
+      {id:4,type:"fact",term:"established in",value:"2024",label:"Approved fact"},
+      {id:5,type:"avoid",term:"100% accurate",value:"",label:"Avoid phrase"}
+    ];
+    nextRuleId = 6; findings = []; hasRun = false; nextFindingId = 1;
+    $("scenarioSelect").value = "social";
+    $("draftText").value = scenarios.social;
+    $("filterFindings").value = "all";
+    updateWordCount(); renderRules(); renderFindings(); updateMetrics();
+    showToast("Demo reset to its starting state.");
+  }
+  $("scenarioSelect").addEventListener("change", () => {
+    $("draftText").value = scenarios[$("scenarioSelect").value];
+    updateWordCount();
   });
-}
-
-function makeButton(label, className, action) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = className;
-  button.textContent = label;
-  button.addEventListener("click", action);
-  return button;
-}
-
-function applySuggestion(id, suggestion) {
-  const issue = currentIssues.find(i => i.id === id);
-  if (!issue) return;
-  if (!suggestion.trim()) {
-    alert("Please enter a correction before accepting.");
-    return;
-  }
-  const draft = $("draft").value;
-  if (issue.type === "Preferred terminology") {
-    $("draft").value = replaceAllInsensitive(draft, issue.phrase, suggestion.trim());
-  } else if (issue.type === "Prohibited wording") {
-    $("draft").value = replaceAllInsensitive(draft, issue.phrase, suggestion.trim());
-  } else {
-    // For a context-based fact finding, insert the human-reviewed suggestion at the end
-    // rather than silently replacing a potentially ambiguous sentence.
-    $("draft").value = draft + "\n\n[Reviewed suggestion: " + suggestion.trim() + "]";
-  }
-  issue.status = "accepted";
-  issue.suggestion = suggestion.trim();
-  renderResults();
-}
-
-function setStatus(id, status) {
-  const issue = currentIssues.find(i => i.id === id);
-  if (issue) issue.status = status;
-  renderResults();
-}
-
-$("checkButton").addEventListener("click", checkContent);
-$("clearDraft").addEventListener("click", () => {
-  $("draft").value = "";
-  $("draft").focus();
-});
-$("loadExample").addEventListener("click", () => {
-  $("brandName").value = "NovaTech";
-  $("rules").value = "Avoid: 100% guaranteed results\nUse: buyer -> customer\nFact: warranty -> 1 year";
-  $("draft").value = "NovaTech guarantees 100% guaranteed results for every buyer. Our warranty is five years.";
-  $("inputHint").textContent = "Example loaded. Click Check content to run the demo.";
-});
+  $("draftText").addEventListener("input", updateWordCount);
+  $("analyzeBtn").addEventListener("click", () => analyzeDraft(true));
+  $("sampleBtn").addEventListener("click", () => {
+    $("scenarioSelect").value = "social";
+    $("draftText").value = scenarios.social;
+    updateWordCount();
+    analyzeDraft(true);
+  });
+  $("addRuleBtn").addEventListener("click", () => {
+    const type = $("newRuleType").value;
+    const term = $("newRuleTerm").value.trim();
+    const value = $("newRuleValue").value.trim();
+    if (!term) { showToast("Enter a phrase or fact topic first."); $("newRuleTerm").focus(); return; }
+    if ((type === "replace" || type === "fact") && !value) { showToast("Enter a replacement or approved value."); $("newRuleValue").focus(); return; }
+    if (rules.some(r => r.type === type && r.term.toLowerCase() === term.toLowerCase())) { showToast("A rule with that phrase and type already exists."); return; }
+    rules.push({id:nextRuleId++,type,term,value,label:type==="avoid"?"Avoid phrase":type==="replace"?"Preferred wording":"Approved fact"});
+    $("newRuleTerm").value = ""; $("newRuleValue").value = "";
+    renderRules();
+    if (hasRun) analyzeDraft(false);
+    showToast("Brand rule added.");
+  });
+  $("filterFindings").addEventListener("change", renderFindings);
+  $("resetBtn").addEventListener("click", resetDemo);
+  $("toggleRulesBtn").addEventListener("click", () => $("rulesPanel").scrollIntoView({behavior:"smooth",block:"start"}));
+  $("navRules").addEventListener("click", () => $("rulesPanel").scrollIntoView({behavior:"smooth",block:"start"}));
+  $("navDashboard").addEventListener("click", () => window.scrollTo({top:0,behavior:"smooth"}));
+  $("navReports").addEventListener("click", openReport);
+  $("showReportBtn").addEventListener("click", openReport);
+  $("closeDialogBtn").addEventListener("click", () => $("reportDialog").close());
+  $("exportBtn").addEventListener("click", openReport);
+  $("copyReportBtn").addEventListener("click", async () => {
+    const report = buildReport();
+    try { await navigator.clipboard.writeText(report); showToast("Report copied to clipboard."); }
+    catch (err) { showToast("Clipboard access blocked. Use Download .txt instead."); }
+  });
+  $("downloadReportBtn").addEventListener("click", () => {
+    const blob = new Blob([buildReport()], {type:"text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "BrandGuard-Review-Report.txt";
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    showToast("Review report downloaded.");
+  });
+  $("draftText").value = scenarios.social;
+  updateWordCount(); renderRules(); renderFindings(); updateMetrics();
+})();

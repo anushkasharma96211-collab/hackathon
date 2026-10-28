@@ -1,55 +1,66 @@
-# BrandGuard AI — Team Quantum Rebels
+# BrandGuard AI — Round 3 Prototype
+**Team:** Quantum Rebels  
+**Event:** FutureStack · Round 3  
+**Live demo (existing deployment):** https://chic-blancmange-1ca709.netlify.app/
 
-A beginner-friendly MVP prototype for the FutureStack hackathon.
+## What it does
+BrandGuard is a human-in-the-loop content review prototype. A user writes or pastes a draft, selects or adds brand rules, runs a check, reviews findings, applies wording suggestions, dismisses findings with a human decision, and exports a text report.
 
-## What works
-- Enter a brand name and simple brand rules.
-- Check a draft against Avoid, Use, and Fact rules.
-- View the matching phrase, rule, explanation, and suggested correction.
-- Accept, edit, or reject suggestions.
-- View a summary of findings and review status.
-- Responsive layout for laptop and mobile browsers.
+### Current implemented features
+- Editable draft with scenario presets and word count.
+- Three transparent rule types: avoid phrase, preferred wording, and approved fact.
+- Case-insensitive phrase matching with word boundaries where appropriate.
+- Findings show the rule, matched phrase, occurrence count, and recommendation.
+- Human review actions: apply a suggested replacement, insert an approved fact value, or dismiss a finding.
+- Rule management: add and remove rules.
+- Summary metrics and a downloadable review report.
+- Responsive layout for desktop and mobile.
+- Local browser-only operation; no login or backend required.
 
-## Technology
-- HTML
-- CSS
-- Vanilla JavaScript
+## Important honesty note
+Despite the product name, this submission build does **not** connect to a generative AI model or external fact-checking service. The analysis is a lightweight, rule-based JavaScript prototype. Its score is a demonstration heuristic, not a validated quality or safety metric. It can miss context and should never be treated as proof that content is accurate or ready to publish. Human verification is required.
 
 ## Run locally
-1. Download or clone this folder.
-2. Open `index.html` in a browser, or use the VS Code Live Server extension.
-3. Click **Load example**, then **Check content**.
+1. Extract the ZIP.
+2. Open `index.html` in a modern browser.
+3. Choose a scenario or edit the draft.
+4. Click **Analyze draft**.
+5. Try **Apply suggestion**, **Dismiss finding**, add/delete a rule, then export a report.
 
-No build step or API key is required.
+No package installation or build process is needed. Internet is not required for the core app; the optional Google font import falls back to system fonts when offline.
 
-## Rule formats
-Use one rule per line:
-- `Avoid: 100% guaranteed results`
-- `Use: buyer -> customer`
-- `Fact: warranty -> 1 year`
+## Round 3 judge demo (about 2 minutes)
+1. **Problem (15 sec):** Teams can publish inconsistent wording or an outdated fact when content is produced quickly.
+2. **Show draft (20 sec):** Keep the default sample; point out “cheapest”, “guarantee”, “customers”, and “established in 2025”.
+3. **Run analysis (25 sec):** Click Analyze draft. Explain that each finding maps to an editable rule.
+4. **Human-in-the-loop (25 sec):** Apply the suggested replacement for “guarantee”; dismiss an avoid-phrase finding to demonstrate that a person owns the decision.
+5. **Customisation (20 sec):** Add an Avoid phrase rule such as “instant results” and re-run analysis.
+6. **Report (15 sec):** Export and show the report summary.
+7. **Limitations and next step (15 sec):** State clearly that this version uses deterministic rules locally. A next iteration would add a real AI-assisted rewrite layer, verified source-of-truth integrations, authentication, and audit history.
 
-These are simple prototype checks, not comprehensive natural-language understanding. Fact checks use nearby text and may need human review. A result of “no configured rules were triggered” does not guarantee correctness.
+## Architecture
+- `index.html`: page structure and accessible controls.
+- `style.css`: responsive visual system and component styles.
+- `script.js`: scenario data, rule management, deterministic analysis, review actions, metrics, and report export.
 
-## Deployment
-### Netlify (simple option)
-1. Go to https://app.netlify.com/drop while signed in to your Netlify account.
-2. Drag the entire `BrandGuard-AI` folder (containing `index.html`, `style.css`, and `script.js`) into the drop area.
-3. Wait for deployment to finish.
-4. Open the generated public URL in a private/incognito browser window and test it.
-5. Save the public URL for the submission.
+## Known limitations
+- No backend, persistent account storage, team collaboration, or audit log.
+- Fact check only compares the draft with a configured approved value; it does not verify the fact externally.
+- Phrase matching is not semantic and may flag context that a person considers acceptable.
+- The score is a simple illustrative heuristic and must not be marketed as a validated score.
+- Human review remains mandatory.
 
-If the current Netlify interface no longer supports folder drop, create a new site and follow its manual deploy instructions or connect the GitHub repository.
+## Suggested future roadmap
+1. **Reliable source of truth:** store approved facts with source URL, owner, and last-reviewed date.
+2. **AI-assisted rewrite (optional):** connect an LLM behind a secure backend, with a visible explanation and human approval.
+3. **Audit trail:** record original draft, findings, accepted changes, reviewer, and timestamp.
+4. **Team workflow:** roles, shared brand rule sets, and exportable evidence.
+5. **Evaluation:** build a labelled test set and report precision/recall before making performance claims.
 
-### GitHub repository
-1. Create a new public repository named `BrandGuard-AI`.
-2. Upload `index.html`, `style.css`, `script.js`, and `README.md`.
-3. Confirm the repository opens when signed out / in a private browser window.
-4. Optional: enable GitHub Pages in repository Settings → Pages and select the main branch as the source. Wait for the published URL, then test it.
+## Team
+- Anshika Tripathi
+- Anushka Sharma
+- Anurag
+- Anuj Yadav
 
-## Before submission
-- Test a correct example, an Avoid-rule example, a preferred-term example, and a fact mismatch.
-- Test Accept, Edit, and Reject.
-- Check empty draft behaviour.
-- Open the live link and repository in a private browser session.
-- In the Round 2 PDF, list only features that actually work.
-- Do not describe this rule-based version as a trained AI model or claim perfect accuracy.
+Built as a student prototype by Team Quantum Rebels.

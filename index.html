@@ -3,79 +3,92 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BrandGuard AI | Brand Content Checker</title>
+  <meta name="theme-color" content="#101827">
+  <title>BrandGuard AI | Brand safety workspace</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand-mark">BG</div>
-    <div>
-      <p class="eyebrow">QUANTUM REBELS PRESENTS</p>
-      <h1>BrandGuard <span>AI</span></h1>
-    </div>
-    <span class="prototype-tag">MVP PROTOTYPE</span>
-  </header>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" aria-label="BrandGuard home">
+        <span class="brand-mark">B<span>G</span></span>
+        <span><strong>BrandGuard</strong><small>CONTENT SAFETY WORKSPACE</small></span>
+      </a>
+      <div class="workspace-label">WORKSPACE</div>
+      <button class="nav-item active" id="navDashboard"><span class="nav-icon">▦</span> Overview</button>
+      <button class="nav-item" id="navRules"><span class="nav-icon">☷</span> Brand rules <span class="nav-count" id="ruleCountSide">5</span></button>
+      <button class="nav-item" id="navReports"><span class="nav-icon">▤</span> Review report</button>
+      <div class="sidebar-bottom">
+        <div class="team-card"><span class="team-avatar">QR</span><div><strong>Quantum Rebels</strong><small>FutureStack · Round 3</small></div></div>
+        <div class="offline-note"><span class="status-dot"></span> Local demo mode <span class="info-dot" title="Analysis runs in your browser using transparent rules.">i</span></div>
+      </div>
+    </aside>
 
-  <main class="page">
-    <section class="intro">
-      <p class="eyebrow">BRAND CONTENT REVIEW</p>
-      <h2>Make every message <span>brand-ready.</span></h2>
-      <p>Check a draft against your brand rules, understand possible issues, and decide which suggestions to use.</p>
-    </section>
+    <main class="main">
+      <header class="topbar">
+        <div class="breadcrumbs">Workspace <span>/</span> <strong>Content review</strong></div>
+        <div class="top-actions"><span class="round-pill">FUTURESTACK R3</span><button class="button button-quiet" id="resetBtn">Reset demo</button></div>
+      </header>
 
-    <div class="notice"><strong>Demo note:</strong> This prototype uses transparent, rule-based checks on sample rules. It does not guarantee that content is correct.</div>
-
-    <section class="workspace">
-      <div class="panel">
-        <div class="panel-heading">
-          <div><span class="step">01</span><h3>Brand rules</h3></div>
-          <button class="text-button" id="loadExample">Load example</button>
+      <section class="hero">
+        <div>
+          <div class="eyebrow"><span class="eyebrow-line"></span> BRAND COMPLIANCE, WITH A HUMAN IN CONTROL</div>
+          <h1>Make every message<br><span>on-brand and trustworthy.</span></h1>
+          <p>Check copy against your team's wording rules and approved facts before it goes live.</p>
         </div>
-        <label for="brandName">Brand name</label>
-        <input id="brandName" type="text" value="NovaTech" placeholder="e.g. NovaTech">
-        <label for="rules">Rules (one per line)</label>
-        <textarea id="rules" rows="7" spellcheck="false">Avoid: 100% guaranteed results
-Use: buyer -> customer
-Fact: warranty -> 1 year</textarea>
-        <p class="helper">Supported formats: <code>Avoid: phrase</code>, <code>Use: old term -&gt; preferred term</code>, and <code>Fact: topic -&gt; approved value</code>.</p>
-      </div>
-
-      <div class="panel">
-        <div class="panel-heading">
-          <div><span class="step">02</span><h3>Content draft</h3></div>
-          <button class="text-button" id="clearDraft">Clear</button>
+        <div class="hero-stats">
+          <div class="hero-stat"><span class="stat-label">ACTIVE RULES</span><strong id="heroRuleCount">5</strong><small>Customisable checks</small></div>
+          <div class="hero-stat"><span class="stat-label">REVIEW MODE</span><strong class="mode-label">Human-led</strong><small>Suggestions need approval</small></div>
         </div>
-        <label for="draft">Paste the text you want to review</label>
-        <textarea id="draft" rows="9" placeholder="Paste a social post, ad, or announcement here...">NovaTech guarantees 100% guaranteed results for every buyer. Our warranty is five years.</textarea>
-        <div class="actions">
-          <button class="primary-button" id="checkButton">Check content <span aria-hidden="true">→</span></button>
-          <span class="helper" id="inputHint">Your draft stays in this browser page.</span>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="results-section" id="resultsSection" aria-live="polite">
-      <div class="results-heading">
-        <div><p class="eyebrow">REVIEW SUMMARY</p><h2>Findings</h2></div>
-        <div class="summary-pill" id="summaryPill">Not checked yet</div>
-      </div>
-      <div id="summaryCards" class="summary-cards"></div>
-      <div id="results" class="results-list">
-        <div class="empty-state"><div class="empty-icon">✓</div><h3>Ready when you are</h3><p>Run a check to see possible brand-rule issues and suggested edits here.</p></div>
-      </div>
-    </section>
+      <section class="metric-grid" aria-label="Review metrics">
+        <article class="metric-card"><div class="metric-top"><span>Brand score</span><span class="metric-icon purple">◈</span></div><div class="metric-value"><strong id="scoreValue">—</strong><span>/ 100</span></div><div class="metric-foot"><span class="metric-dot purple-dot"></span><span id="scoreCaption">Run a review to calculate</span></div><div class="meter"><span id="scoreMeter"></span></div></article>
+        <article class="metric-card"><div class="metric-top"><span>Findings</span><span class="metric-icon amber">⚑</span></div><div class="metric-value"><strong id="findingValue">0</strong></div><div class="metric-foot"><span id="findingCaption">Potential issues to review</span></div></article>
+        <article class="metric-card"><div class="metric-top"><span>Approved facts</span><span class="metric-icon blue">✓</span></div><div class="metric-value"><strong id="factValue">0</strong><span id="factTotal"> / 1 checked</span></div><div class="metric-foot"><span>Fact rules checked in this draft</span></div></article>
+        <article class="metric-card"><div class="metric-top"><span>Review status</span><span class="metric-icon green">●</span></div><div class="metric-value status-value"><strong id="statusValue">Not run</strong></div><div class="metric-foot"><span id="statusCaption">Analysis has not started</span></div></article>
+      </section>
 
-    <section class="how-it-works">
-      <h2>How BrandGuard works</h2>
-      <div class="how-grid">
-        <div><span>1</span><h3>Set rules</h3><p>Enter approved wording, terms, and facts.</p></div>
-        <div><span>2</span><h3>Check draft</h3><p>Compare the draft with the rules you supplied.</p></div>
-        <div><span>3</span><h3>Review changes</h3><p>Accept, edit, or reject each suggestion yourself.</p></div>
-      </div>
-    </section>
+      <section class="work-grid" id="reviewWorkspace">
+        <article class="panel editor-panel">
+          <div class="panel-heading"><div><span class="section-kicker">01 / INPUT</span><h2>Review your content</h2></div><span class="small-chip">Draft editor</span></div>
+          <div class="field-row"><label for="scenarioSelect">Start with a scenario</label><select id="scenarioSelect"><option value="social">Social media announcement</option><option value="press">Press release</option><option value="product">Product landing page</option><option value="blank">Blank draft</option></select></div>
+          <label class="field-label" for="draftText">Content draft <span>EDITABLE</span></label>
+          <textarea id="draftText" spellcheck="true" placeholder="Paste your draft here..."></textarea>
+          <div class="editor-meta"><span id="wordCount">0 words</span><span>Draft stays in this browser</span></div>
+          <div class="editor-actions"><button class="button button-primary" id="analyzeBtn"><span>✦</span> Analyze draft</button><button class="button button-secondary" id="sampleBtn">Load test case</button></div>
+          <div class="privacy-note"><span>▣</span><div><strong>Local-first demo</strong><p>Your text is analysed in this browser. No server or external AI API is connected.</p></div></div>
+        </article>
 
-    <footer><span>BrandGuard AI · Team Quantum Rebels</span><span>Human review stays in control.</span></footer>
-  </main>
+        <article class="panel rules-panel" id="rulesPanel">
+          <div class="panel-heading"><div><span class="section-kicker">02 / GUIDELINES</span><h2>Brand rules</h2></div><button class="text-button" id="toggleRulesBtn">Manage rules ↗</button></div>
+          <p class="panel-intro">Checks are transparent and editable. Add rules that match your brand's voice.</p>
+          <div id="rulesList" class="rules-list"></div>
+          <div class="add-rule-form">
+            <div class="add-rule-heading"><strong>+ Add a rule</strong><span>New checks apply immediately</span></div>
+            <div class="rule-input-grid"><select id="newRuleType" aria-label="Rule type"><option value="avoid">Avoid phrase</option><option value="replace">Preferred wording</option><option value="fact">Approved fact</option></select><input id="newRuleTerm" placeholder="Phrase / fact topic" aria-label="Phrase or fact topic"><input id="newRuleValue" placeholder="Replacement / approved value" aria-label="Replacement or approved value"></div>
+            <button class="button button-secondary button-full" id="addRuleBtn">Add brand rule</button>
+            <p class="form-help">For an approved fact, enter the topic first and its correct value second.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel findings-panel" id="findingsPanel">
+        <div class="panel-heading findings-heading"><div><span class="section-kicker">03 / HUMAN REVIEW</span><h2>Review findings <span class="result-count" id="resultCount">0</span></h2></div><div class="findings-tools"><select id="filterFindings" aria-label="Filter findings"><option value="all">All findings</option><option value="open">Needs review</option><option value="accepted">Accepted</option><option value="dismissed">Dismissed</option></select><button class="button button-secondary" id="exportBtn">Export report</button></div></div>
+        <div id="findingsList" class="findings-list"><div class="empty-state"><div class="empty-icon">⌕</div><strong>Ready when you are</strong><p>Analyze a draft to see wording and fact-check findings here.</p></div></div>
+        <div class="findings-footer"><span id="reviewSummary">No review has been run yet.</span><button class="text-button" id="showReportBtn">View review summary →</button></div>
+      </section>
+
+      <footer class="footer"><span>BrandGuard AI · Team Quantum Rebels</span><span>Prototype v3.0 <span class="footer-sep">•</span> Rule-based demo · Human approval required</span></footer>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog id="reportDialog" class="report-dialog">
+    <div class="dialog-head"><div><span class="section-kicker">REVIEW EXPORT</span><h2>Content review summary</h2></div><button class="icon-button" id="closeDialogBtn" aria-label="Close report">×</button></div>
+    <div id="reportContent"></div>
+    <div class="dialog-actions"><button class="button button-secondary" id="copyReportBtn">Copy summary</button><button class="button button-primary" id="downloadReportBtn">Download .txt</button></div>
+  </dialog>
   <script src="script.js"></script>
 </body>
 </html>
